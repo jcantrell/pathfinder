@@ -1,3 +1,18 @@
+class AnnotatedNode {
+  constructor(n,p,f,g) {
+    this.n = n;
+    this.p = p;
+    this.f = f;
+    this.g = g;
+  }
+  toString() {
+    if (this.p != null)
+      return "("+this.n.toString()+","+this.f+","+this.g+")";
+    else
+      return "("+this.n.toString()+","+this.f+","+this.g+")";
+  }
+}
+
 class Grid {
   constructor(width=10,height=10,xin=0,yin=0) {
     this.states = {
@@ -21,7 +36,25 @@ class Grid {
     this.bh = 50;
     this.debug = true;
     this.tl = {x:xin,y:yin};
-    this.db(this.asString());
+    this.db(this.toString());
+
+    this.marks = {
+      unmarked: 0,
+      closed: 1,
+      open: 2,
+    }
+    this.open = [];
+    for (var y=0;y<height;y++) {
+      this.open[y] = [];
+      for (var x=0;x<width;x++)
+        this.open[y][x] = this.marks.unmarked;
+    }
+    this.ftable = [];
+    for (var y=0;y<height;y++) {
+      this.ftable[y] = [];
+      for (var x=0;x<width;x++)
+        this.ftable[y][x] = 0;
+    }
   }
   asString() {
     var s="";
@@ -131,7 +164,7 @@ class Grid {
     this.draw(ctx);
   }
   stroke(ctx,e) {
-    this.db("stroke: "+e.x+" "+e.y);
+    //this.db("stroke: "+e.x+" "+e.y);
     ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
     var x = e.x - this.tl.x; 
     var y = e.y - this.tl.y;
@@ -143,13 +176,14 @@ class Grid {
   }
   setStart(r,c) {
     if (this.start != null) this.board[this.start.r][this.start.c] = this.states.blank;
-    this.board[this.focus.r][this.focus.c] = this.states.start;
-    this.start = {r:this.focus.r, c:this.focus.c};
+    this.board[r][c] = this.states.start;
+    //this.start = {r:r, c:c};
+    this.start = new Point(c,r);
   }
   setEnd(r,c) {
     if (this.end != null) this.board[this.end.r][this.end.c] = this.states.blank;
-    this.board[this.focus.r][this.focus.c] = this.states.end;
-    this.end = {r:this.focus.r, c:this.focus.c};
+    this.board[r][c] = this.states.end;
+    this.end = new Point(c,r);
   }
   setObstacle(r,c) {
     this.board[this.focus.r][this.focus.c] = this.states.blocked;
@@ -172,6 +206,103 @@ class Grid {
       this.setEnd(this.focus.r,this.focus.c);
       this.db(this.asString()+"\n");
       this.draw(ctx);
+    } else if (e.key == 'f') {
+      this.astar(this.start, this.end);
+      this.db('ended final');
+      this.draw(ctx);
+    }
+  }
+  neighbors(n) {
+    var r = [];
+    for (var x=-1;x<=1;x++) for (var y=-1;y<=1;y++) {
+      if (x+n.x>=0 &&
+          x+n.x<this.board.length &&
+          y+n.y>=0 &&
+          y+n.y<this.board[0].length &&
+          !(x==0 && y==0)
+        )
+        r.push(new Point(x+n.x,y+n.y));
+    }
+    return r;
+  }
+  // cost from start to m plus cost of m to n (ie, cost of start to n)
+  g(m,n) {
+    return m.g+1;
+  }
+  h(n,e) {
+    return Math.abs(n.x-e.x)+Math.abs(n.y-e.y);
+  }
+  astar(start,end) {
+    var open = new Heap(1);
+    var closed = new Map();
+    open.insert(new AnnotatedNode(start,null,0,0),0);
+    this.open[start.y][start.x] = this.marks.open;
+    this.ftable[start.y][start.x] = 0;
+    var pass = 0;
+    while (true) {
+      if (pass > 80) { this.db("ABORT!");return null; }
+      console.log("PASS "+pass);
+
+      console.log("open length: "+open.size());
+      console.log("open empty: "+open.isEmpty());
+
+      if (open.isEmpty()) {
+        console.log("returingnnull");
+        return null;
+      }
+      var n = open.remove();
+      this.open[n.n.y][n.n.x] = this.marks.unmarked;
+/*
+      if (n.p==null || n.p==undefined)
+        this.db("Removed: "+n.n.x+","+n.n.y+" "+"null"+" "+n.f+" "+n.g);
+      else
+        this.db("Removed: "+n.n.x+","+n.n.y+" "+n.p.r+","+n.p.c+" "+n.f+" "+n.g);
+*/
+      this.db("Removed: "+n.toString());
+      this.db("open is now");
+      this.db(open.toString());
+
+      //if (n.n.x == end.c && n.n.y == end.r) {
+      if (n.n.equals(end)) {
+        //closed.set(n.n,n.f);
+        this.open[n.n.y][n.n.x] = this.marks.closed;
+        this.ftable[n.n.y][n.n.x] = n.f;
+        var z = n;
+        this.db("returning path: ");
+        while (z != null) {
+          this.db(z.toString());
+          z = z.p;
+        }
+        return n;
+      }
+      this.db("Closing: "+n.n.y+","+n.n.x+" with "+n.f);
+      //closed.set(n.n,n.f);
+      this.ftable[n.n.y][n.n.x] = n.f;
+      this.open[n.n.y][n.n.x] = this.marks.closed;
+      var ni = this.neighbors(n.n);
+      for (var i=0;i<ni.length;i++) {
+          var s = ni[i];
+          var t = new AnnotatedNode(s,n,this.g(n,s)+this.h(s,this.end),this.g(n,s));
+          if (!(this.open[t.n.y][t.n.x]==this.marks.closed) && !(this.open[t.n.y][t.n.x]==this.marks.open)) {
+            this.db("Closed did not have "+t.toString()+":");
+            open.insert(t,t.f);
+            this.open[t.n.y][t.n.x] = this.marks.open;
+            this.ftable[t.n.y][t.n.x] = t.f;
+          //} else if (closed.has(t.n) && t.f < closed.get(t.n).f) {
+          //} else if (closed.has(t.n) && t.f < this.ftable[t.n.r][t.n.c]) {
+          } else if (this.open[t.n.y][t.n.x]==closed && t.f < this.ftable[t.n.y][t.n.x]) {
+            closed.delete(t.n);
+            open.insert(t,t.f);
+            this.open[t.n.y][t.n.x] = this.marks.open;
+            this.ftable[t.n.y][t.n.x] = t.f;
+            this.db("Opening "+t.n.y+","+t.n.x);
+          } 
+          else if (this.open[t.n.y][t.n.x]==this.marks.open && t.f < this.ftable[t.n.y][t.n.x]) {
+            this.ftable[t.n.y][t.n.x] = t.f;
+          }
+      }
+      console.log("END PASS "+pass);
+      pass++;
     }
   }
 }
@@ -181,6 +312,13 @@ var ctx = canvas.getContext('2d');
 let grid = new Grid(10,10,ctx.canvas.getBoundingClientRect().left,ctx.canvas.getBoundingClientRect().top);
 
 var canvas = document.getElementById("mainCanvas");
+grid.draw(ctx);
+
+grid.setStart(4,2);
+grid.setEnd(4,6);
+grid.draw(ctx);
+grid.astar(grid.start, grid.end);
+grid.db('ended final');
 grid.draw(ctx);
 
 function mouseDownHandler(e) {
@@ -195,7 +333,6 @@ function keyDownHandler(e) {
 function mouseMoveHandler(e) {
   grid.stroke(ctx,e);
 }
-
 function mouseUpHandler(e) {
   grid.mouseState = 0;
 }
