@@ -36,7 +36,6 @@ class Grid {
     this.bh = 50;
     this.debug = true;
     this.tl = {x:xin,y:yin};
-    this.db(this.toString());
 
     this.marks = {
       unmarked: 0,
@@ -106,19 +105,6 @@ class Grid {
     // Background
     ctx.fillStyle = "lightgrey";
     ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
-    
-/*
-    // Highlight focused row and column
-    for (var i=0;i<9;i++) {
-      ctx.fillStyle = "#bbbbbb";
-      ctx.fillRect(i*this.bw,this.focus.r*this.bh,this.bw,this.bh);
-      ctx.fillRect(this.focus.c*this.bw,i*this.bh,this.bw,this.bh);
-    }
-
-    // Highlight focused square
-    ctx.fillStyle = "#cccccc";
-    ctx.fillRect(this.focus.c*this.bw,this.focus.r*this.bh,this.bw,this.bh);
-*/
 
     // Outline individual squares
     for (var r=0;r<this.board[0].length;r++) {
@@ -127,17 +113,6 @@ class Grid {
         ctx.strokeRect(c*this.bw, r*this.bh, this.bw, this.bh);
       }
     }
-
-/*
-    // Draw 3x3 outlined squares
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = 2;
-    for (var r=0;r<3;r++) {
-      for (var c=0;c<3;c++) {
-        ctx.strokeRect(c*this.bw*3, r*this.bh*3, this.bw*3, this.bh*3);
-      }
-    }
-*/
 
     // Print cells
     for (var r=0;r<this.board[0].length;r++) {
@@ -152,19 +127,15 @@ class Grid {
     ctx.strokeRect(this.focus.c*this.bw, this.focus.r*this.bh, this.bw, this.bh);
   }
   click(ctx,e) {
-    this.db("Click: "+e.x+" "+e.y);
     ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
     this.focus.x = e.x - this.tl.x; 
     this.focus.y = e.y - this.tl.y;
     this.focus.r = Math.floor(this.focus.y / this.bh);
     this.focus.c = Math.floor(this.focus.x / this.bw);
-    //this.board[this.focus.r][this.focus.c] = this.states
     this.mouseState = 1;
-    this.db("Focus: "+this.focus.x+" "+this.focus.y+" "+this.focus.r+" "+this.focus.c);
     this.draw(ctx);
   }
   stroke(ctx,e) {
-    //this.db("stroke: "+e.x+" "+e.y);
     ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
     var x = e.x - this.tl.x; 
     var y = e.y - this.tl.y;
@@ -208,7 +179,6 @@ class Grid {
       this.draw(ctx);
     } else if (e.key == 'f') {
       this.astar(this.start, this.end);
-      this.db('ended final');
       this.draw(ctx);
     }
   }
@@ -233,50 +203,36 @@ class Grid {
     return Math.abs(n.x-e.x)+Math.abs(n.y-e.y);
   }
   astar(start,end) {
-    var open = new Heap(1);
+    // Implement the A* algorithm
+    // Step 1: Mark s "open" and calculate f(s)
+    var open = new Heap(1); // Min-heap
     var closed = new Map();
     open.insert(new AnnotatedNode(start,null,0,0),0);
     this.open[start.y][start.x] = this.marks.open;
     this.ftable[start.y][start.x] = 0;
+
     var pass = 0;
     while (true) {
-      if (pass > 80) { this.db("ABORT!");return null; }
-      console.log("PASS "+pass);
-
-      console.log("open length: "+open.size());
-      console.log("open empty: "+open.isEmpty());
-
       if (open.isEmpty()) {
-        console.log("returingnnull");
         return null;
       }
+      // Step 2: Select open node n with smallest value of f.
       var n = open.remove();
       this.open[n.n.y][n.n.x] = this.marks.unmarked;
-/*
-      if (n.p==null || n.p==undefined)
-        this.db("Removed: "+n.n.x+","+n.n.y+" "+"null"+" "+n.f+" "+n.g);
-      else
-        this.db("Removed: "+n.n.x+","+n.n.y+" "+n.p.r+","+n.p.c+" "+n.f+" "+n.g);
-*/
-      this.db("Removed: "+n.toString());
-      this.db("open is now");
-      this.db(open.toString());
 
-      //if (n.n.x == end.c && n.n.y == end.r) {
+      // Step 3: If n is a goal node, mark closed and terminate.
       if (n.n.equals(end)) {
-        //closed.set(n.n,n.f);
         this.open[n.n.y][n.n.x] = this.marks.closed;
         this.ftable[n.n.y][n.n.x] = n.f;
-        var z = n;
-        this.db("returning path: ");
-        while (z != null) {
-          this.db(z.toString());
-          z = z.p;
-        }
         return n;
       }
-      this.db("Closing: "+n.n.y+","+n.n.x+" with "+n.f);
-      //closed.set(n.n,n.f);
+
+      // Step 4:  Mark n closed and apply successor function to n.
+      //          Calculate f for each successor and mark as open each
+      //          successor not already marked closed. Remark as open any closed
+      //          node n_i which is a successor of n and for which f(n_i) is
+      //          smaller now than it was when n_i was marked closed.
+      //          Goto step 2.
       this.ftable[n.n.y][n.n.x] = n.f;
       this.open[n.n.y][n.n.x] = this.marks.closed;
       var ni = this.neighbors(n.n);
@@ -284,24 +240,19 @@ class Grid {
           var s = ni[i];
           var t = new AnnotatedNode(s,n,this.g(n,s)+this.h(s,this.end),this.g(n,s));
           if (!(this.open[t.n.y][t.n.x]==this.marks.closed) && !(this.open[t.n.y][t.n.x]==this.marks.open)) {
-            this.db("Closed did not have "+t.toString()+":");
             open.insert(t,t.f);
             this.open[t.n.y][t.n.x] = this.marks.open;
             this.ftable[t.n.y][t.n.x] = t.f;
-          //} else if (closed.has(t.n) && t.f < closed.get(t.n).f) {
-          //} else if (closed.has(t.n) && t.f < this.ftable[t.n.r][t.n.c]) {
           } else if (this.open[t.n.y][t.n.x]==closed && t.f < this.ftable[t.n.y][t.n.x]) {
             closed.delete(t.n);
             open.insert(t,t.f);
             this.open[t.n.y][t.n.x] = this.marks.open;
             this.ftable[t.n.y][t.n.x] = t.f;
-            this.db("Opening "+t.n.y+","+t.n.x);
           } 
           else if (this.open[t.n.y][t.n.x]==this.marks.open && t.f < this.ftable[t.n.y][t.n.x]) {
             this.ftable[t.n.y][t.n.x] = t.f;
           }
       }
-      console.log("END PASS "+pass);
       pass++;
     }
   }
@@ -318,7 +269,6 @@ grid.setStart(4,2);
 grid.setEnd(4,6);
 grid.draw(ctx);
 grid.astar(grid.start, grid.end);
-grid.db('ended final');
 grid.draw(ctx);
 
 function mouseDownHandler(e) {
