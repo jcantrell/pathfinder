@@ -9,7 +9,7 @@ possibly jQuery.
 - [x] Draw grid
 - [x] Allow placing of start and end points
 - [x] Allow drawing of obstacles
-- [ ] Implement at least one pathfinding algorithm
+- [x] Implement at least one pathfinding algorithm
 - [ ] Control algorithm step by step (allow 'stepping functionality')
-- [ ] Add run-to-completion functionality (rather than just step-by-step)
+- [x] Add run-to-completion functionality (rather than just step-by-step)
 - [ ] Draw visualization on each step

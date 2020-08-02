@@ -19,7 +19,8 @@ class Grid {
       blank: 0,
       start: 1,
       end: 2,
-      blocked: 3
+      blocked: 3,
+      path: 4
     }
     this.board = [];
     for (var y=0;y<height;y++) {
@@ -40,7 +41,7 @@ class Grid {
     this.marks = {
       unmarked: 0,
       closed: 1,
-      open: 2,
+      open: 2
     }
     this.open = [];
     for (var y=0;y<height;y++) {
@@ -146,13 +147,13 @@ class Grid {
     this.draw(ctx);
   }
   setStart(r,c) {
-    if (this.start != null) this.board[this.start.r][this.start.c] = this.states.blank;
+    if (this.start != null) { this.db("Start: "+this.start+" "+this.start.toString()+" "+this.board[0].length+" "+this.start.y+" "+this.start.x);this.board[this.start.y][this.start.x] = this.states.blank; }
     this.board[r][c] = this.states.start;
     //this.start = {r:r, c:c};
     this.start = new Point(c,r);
   }
   setEnd(r,c) {
-    if (this.end != null) this.board[this.end.r][this.end.c] = this.states.blank;
+    if (this.end != null) this.board[this.end.y][this.end.x] = this.states.blank;
     this.board[r][c] = this.states.end;
     this.end = new Point(c,r);
   }
@@ -178,6 +179,7 @@ class Grid {
       this.db(this.asString()+"\n");
       this.draw(ctx);
     } else if (e.key == 'f') {
+      this.db("f pressed");
       this.astar(this.start, this.end);
       this.draw(ctx);
     }
@@ -204,9 +206,10 @@ class Grid {
   }
   astar(start,end) {
     // Implement the A* algorithm
-    // Step 1: Mark s "open" and calculate f(s)
     var open = new Heap(1); // Min-heap
     var closed = new Map();
+
+    // Step 1: Mark s "open" and calculate f(s)
     open.insert(new AnnotatedNode(start,null,0,0),0);
     this.open[start.y][start.x] = this.marks.open;
     this.ftable[start.y][start.x] = 0;
@@ -224,6 +227,17 @@ class Grid {
       if (n.n.equals(end)) {
         this.open[n.n.y][n.n.x] = this.marks.closed;
         this.ftable[n.n.y][n.n.x] = n.f;
+
+
+        // Mark path nodes as such
+        var z = n;
+        this.db("returning path: ");
+        while (z != null) {
+          this.db(z.toString());
+          this.board[z.n.y][z.n.x] = this.states.path;
+          z = z.p;
+        }
+
         return n;
       }
 
@@ -254,6 +268,7 @@ class Grid {
           }
       }
       pass++;
+
     }
   }
 }
