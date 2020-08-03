@@ -10,7 +10,7 @@ possibly jQuery.
 - [x] Allow placing of start and end points
 - [x] Allow drawing of obstacles
 - [x] Implement at least one pathfinding algorithm
-- [ ] Control algorithm step by step (allow 'stepping functionality')
+- [x] Control algorithm step by step (allow 'stepping functionality')
 - [x] Add run-to-completion functionality (rather than just step-by-step)
-- [ ] Draw visualization on each step
+- [x] Draw visualization on each step
 - [ ] Move board tracking stuff (start, end, path, blocked, etc) to twoDSpace
