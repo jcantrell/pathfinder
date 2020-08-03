@@ -13,3 +13,4 @@ possibly jQuery.
 - [ ] Control algorithm step by step (allow 'stepping functionality')
 - [x] Add run-to-completion functionality (rather than just step-by-step)
 - [ ] Draw visualization on each step
+- [ ] Move board tracking stuff (start, end, path, blocked, etc) to twoDSpace
