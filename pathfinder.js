@@ -8,7 +8,9 @@ class Grid {
       end: 2,
       blocked: 3,
       path: 4,
-      count: 5
+      open: 5,
+      closed: 6,
+      count: 7
     }
     this.board = [];
     for (var y=0;y<height;y++) {
@@ -36,7 +38,7 @@ class Grid {
     this.tl.y = ctx.canvas.getBoundingClientRect().top;
 
     //var colors = ['#D3D3D3', '#606060', '#808080', '#a0a0a0', '#e0e0e0'];
-    var colors = ['#D3D3D3', '#606060', '#909090', '#707070', '#b0b0b0'];
+    var colors = ['#D3D3D3', '#606060', '#909090', '#707070', '#b0b0b0', '#c8c8c8', '#202020'];
 
     // Print cells
     for (var r=0;r<this.board[0].length;r++) {
@@ -116,9 +118,35 @@ class Grid {
       this.db(this.asString()+"\n");
       this.draw(ctx);
     } else if (e.key == 'f') {
-      this.db("f pressed");
       var p = this.astar(this.start, this.end);
       this.printPath(p);
+      this.draw(ctx);
+    } else if (e.key == 'r') {
+      this.agent.reset();
+      this.agent.open.insert(new AnnotatedNode(this.start,null,0,0),0);
+    } else if (e.key == 't') {
+      if (this.pathNode==null && !this.agent.open.isEmpty())
+      {
+        this.pathNode = this.agent.aStarIteration(this.end);
+      } else {
+        this.printPath(this.pathNode);
+      }
+      this.draw(ctx);
+
+      var ol = this.agent.openlist();
+      for (var i=0;i<ol.length;i++) 
+        if (!(this.start.x==ol[i].n.x && this.start.y==ol[i].n.y || this.end.y==ol[i].n.y&&this.end.x==ol[i].n.x))
+          this.board[ol[i].n.y][ol[i].n.x] = this.states.open;
+      var cl = this.agent.closedlist();
+      for (var i=0;i<cl.length;i++)
+      {
+        var pa = JSON.parse(cl[i]);
+        if (!(this.start.x==pa.x && this.start.y==pa.y || this.end.y==pa.y&&this.end.x==pa.x))
+          this.board[pa.y][pa.x] = this.states.closed;
+      }
+
+      if (this.pathNode!=null)
+        this.printPath(this.pathNode);
       this.draw(ctx);
     }
   }
@@ -135,7 +163,7 @@ class Grid {
   }
   weight(a,b) { return this.space.weight(a,b); }
   astar(start,end) {
-    var v = this.agent.astar(this.start,this.end);
+    var v = this.agent.aStarStepwise(this.start,this.end);
     return v;
   }
   printPath(n) {
@@ -148,7 +176,6 @@ class Grid {
     }
   }
 }
-
 
 var canvas = document.getElementById("mainCanvas");
 var ctx = canvas.getContext('2d');

@@ -17,6 +17,8 @@ class aStarAgent2D {
   constructor(space) {
     this.space = space;
     this.debug = true;
+    this.open = new Heap(1);
+    this.closed = new Map();
   }
   db(text) {
     if (this.debug) console.log(text);
@@ -44,47 +46,80 @@ class aStarAgent2D {
   }
   // Implement the A* algorithm
   astar(start,end) {
-    this.db("star called");
     var open = new Heap(1); // Min-heap
     var closed = new Map();
 
-    this.db("opening"+JSON.stringify(start)+" 0");
     open.insert(new AnnotatedNode(start,null,0,0),0);
 
-    var pass=0;
     while (!open.isEmpty()) {
       var n = open.remove();
-      this.db("unopening "+JSON.stringify(n.n));
-      closed.set(JSON.stringify(n),n.f);
+      closed.set(JSON.stringify(n.n),n.f);
 
       if (n.n.equals(end))
         return n;
 
       var l = this.space.neighbors(n.n);
-      this.db(JSON.stringify(this.space.board));
       for (var i=0;i<l.length;i++) {
         var s = l[i];
         var g = this.g(n,s);
         var f = g + this.h(s,end);
         var t = new AnnotatedNode (s, n, f, g);
 
-        this.db("checking "+JSON.stringify(s));
-
         if (! (closed.has(JSON.stringify(t.n)) 
-              && t.f >= closed.get(JSON.stringify(t.n))) ) 
+              && t.f >= closed.get(JSON.stringify(t.n))) )
         {
           if (closed.has(JSON.stringify(t.n))) 
-          {
-            this.db("unclosing "+JSON.stringify(t.n));
             closed.remove(JSON.stringify(t.n));
-          }
           open.insert(t,t.f);
         }
       }
     }
     this.db("No path found!");
   }
+  reset() {
+    this.closed.clear();
+    this.open.clear();
+  }
+  aStarIteration(end) {
+    if (this.open.isEmpty()) return null;
+    var n = this.open.remove();
+    this.closed.set(JSON.stringify(n.n),n.f);
+    if (n.n.equals(end))
+      return n;
+
+    var l = this.space.neighbors(n.n);
+    for (var i=0;i<l.length;i++) {
+      var s = l[i];
+      var g = this.g(n,s);
+      var f = g + this.h(s,end);
+      var t = new AnnotatedNode (s, n, f, g);
+
+      if (! (this.closed.has(JSON.stringify(t.n)) 
+          && t.f >= this.closed.get(JSON.stringify(t.n))) )
+      {
+        if (this.closed.has(JSON.stringify(t.n))) 
+          this.closed.remove(JSON.stringify(t.n));
+        this.open.insert(t,t.f);
+      }
+    }
+    return null;
+  }
+  aStarStepwise(start,end) {
+    this.reset();
+    this.open.insert(new AnnotatedNode(start,null,0,0),0);
+    var p = null
+    while (p == null && !this.open.isEmpty())
+      p = this.aStarIteration(end);
+    return p;
+  }
+  openlist() {
+    var c = this.open.copy();
+    var r = [];
+    while (!c.isEmpty())
+      r.push(c.remove());
+    return r;
+  }
+  closedlist() {
+    return Array.from( this.closed.keys() );
+  }
 }
-
-
-//export { aStarAgent2D };
