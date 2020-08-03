@@ -263,15 +263,12 @@ class Grid {
             this.open[t.n.y][t.n.x] = this.marks.open;
             this.ftable[t.n.y][t.n.x] = t.f;
           } 
-          else if (this.open[t.n.y][t.n.x]==this.marks.open && t.f < this.ftable[t.n.y][t.n.x]) {
-            this.ftable[t.n.y][t.n.x] = t.f;
-          }
       }
       pass++;
-
     }
   }
 }
+
 
 var canvas = document.getElementById("mainCanvas");
 var ctx = canvas.getContext('2d');
